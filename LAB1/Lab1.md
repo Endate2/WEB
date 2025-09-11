@@ -360,248 +360,198 @@ FastCGI — это протокол взаимодействия веб-серв
 
 Таким образом, FastCGI является более современной и эффективной технологией по сравнению с классическим CGI, особенно для веб-приложений с высокой нагрузкой и требованиями к масштабируемости и производительности [1][2][3][4][7].
 
-Источники
-[1] FastCGI и PHP-FPM это - WP Yoda https://wp-yoda.com/infrastruktura/fastcgi-eto/
-[2] Коротко что такое CGI, FastCGI, PHP-FPM и mod_php https://wiki.dieg.info/fastcgi
-[3] FastCGI https://ru.wikipedia.org/wiki/FastCGI
-[4] Коротко о CGI, FastCGI, PHP-FPM и mod_php https://kupereal.com/kb/korotko-o-cgi-fastcgi-php-fpm-i-mod_php.html
-[5] FastCGI - kharchuk.ru http://kharchuk.ru/glossary/157-fastcgi
-[6] CGI https://sites.google.com/site/kfgnb0101/home/Doc/unix-shell-scripting-tutorial/cgi
-[7] FastCGI интерфейс https://www.opennet.ru/docs/RUS/lighttpd_doc/fastcgi.html
-[8] Лабораторная 2 веб https://hackmd.io/@farid03/r1BG230Ot
-[9] Web-приложение на C/C++ с помощью FastCGI — это ... https://habr.com/ru/articles/154187/
-[10] Недостатки и большие достоинства php в режиме fastcgi https://hostinghutor.com/blog/php-hosting_mod-php-vs-php-cgi_for_users.html
-[11] CGI и FastCGI плюс Java - Блог умелого разработчика http://sannystark.github.io/java/cgi/fastcgi/2016/01/24/cgi-fastcgi-java.html
 
 
-## 14. Язык PHP - синтаксис, типы данных, встраивание в веб-страницы, правила обработки HTTP-запросов. Особенности реализации принципов ООП в PHP.
 
-PHP - скриптовый язык общего назначения, интенсивно применяемый для разработки веб-приложений.
+## 14. FastCGI сервер на языке Kotlin.
 
-### типы данных
+Объяснение кода из Kotlin FastCGI-сервера построчно:
 
-PHP - яп с динамической типизацией. Преобразования меджду скалярными типами происходят неявно. 
-
-Скалярные типы: integer, float, double, boolean, string. 
-
-Нескалярные: array, object, resource, null
-
-Псевдотипы: mixed (любой тип), number, callback (string или анонимная фунуция), void.
-
-### запрос
-
-```php
-$url = 'https://translate.yandex.ru';
-
-$context = stream_context_create([
-    'http' => [
-        'method' => 'POST',
-        'content' => http_build_query([
-            'lang' => 'ru-en',
-            'text' => 'Все получилось',
-        ])
-    ]
-]);
+```kotlin
+import com.fastcgi.FCGIInterface
+import validation.Validate
+import check.Checker
+import java.nio.charset.StandardCharsets
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.LinkedHashMap
 ```
+- Подключение необходимых зависимостей и библиотек: FastCGI интерфейс, классы валидации, стандартные библиотеки времени и коллекций.
 
-stream_context_create() отвечает за создание контекста запросов различных протоколов, в том числе ftp, ssl, tcp
-
-### ооп в php
-
-```php
-class ClassName {
-  public $publicName;
-  private $privateName;
-  protected $protectedName;
-  
-  const CONST_VAL = 'val';
-  
-  public function getPrivateName() {
-    return $this->$privateName; // $this -- ссылка на сам объект, $parent - на родительский.
-  }
-};
-
-echo ClassName::CONST_VAL; // для обращения к константам
-
-$classname = new ClassName();
-
-$className->publicName; // доступ к переменной
-
-
+```kotlin
+object Server {
+    @JvmStatic
+    fun main(args: Array<String>) {
 ```
+- Объявление основного объекта сервера с функцией main, точкой входа в программу.
 
- PHP поддерживает все три основных механизма ООП — инкапсуляцию, полиморфизм подтипов и наследование (с помощью extend). Поддерживаются интерфейсы (с помощью implements). Есть абстрактные и final методы и классы. Множественное наследование не поддерживается, но класс может реализовывть несколько интерфейсов или с помощью механизма особенностей (trait), который имеет средства для разрешения конфликтов.  
- 
-Методы:
-`__construct()` -- конструктор
-`__destruct()` -- для деинициализации объекта
-`__get()`, `__set()`
-`__sleep()`, `__wakeup()`
-`__clone()`
+```kotlin
+        val fcgiInterface = FCGIInterface()
+        val v = Validate()
+        val checker = Checker()
+```
+- Создание экземпляров классов для работы с FastCGI-запросами, и валидации/проверки данных.
 
-# Вопросы к защите
+```kotlin
+        while (fcgiInterface.FCGIaccept() >= 0) {
+```
+- Главный цикл обработки запросов FastCGI: метод FCGIaccept ждёт запрос, возвращает >=0 при успешном получении.
 
-## 1. CORS
+```kotlin
+            val method = FCGIInterface.request.params.getProperty("REQUEST_METHOD") // извлекаем метод запроса GET POST и тд
+```
+- Извлечение HTTP метода текущего запроса из параметров (GET, POST и т.п.).
 
-Политика same-origin, которую браузеры распространяют на запросы из JS (`fetch()`), клиент не может запросить ресурсы с другого origin'а (origin = домен (example.com), протокол (http/https), порт (80)).
+```kotlin
+            if (method == "GET") {
+                val startTime = System.nanoTime() // стартовое время
+```
+- Если метод GET, замеряем время начала обработки для подсчёта длительности.
 
-Cross-origin resource sharing позволяет запросить ресурсы (картинки, CSS, JS) не со своего origin'а. Сначала клиент отправляет HTTP OPTIONS запрос с заголовком `Origin: http://www.example.com`, где example.com — адрес сайта. Если сервер не позволяет получить ресурс, возвращается страница ошибки, иначе — заголовок `Access-Control-Allow-Origin: ...`, который может вместо `...` включать адрес запросившего сайта (`http://www.example.com`) или `*`.
+```kotlin
+                val req = FCGIInterface.request.params.getProperty("QUERY_STRING") // параметры из URL
+```
+- Получаем строку параметров запроса из URL после знака ?.
 
-Сервер может вернуть заголовок `Access-Control-Allow-Methods: GET, POST, ...`, в котором перечисляются возможные методы для доступа к ресурсу.
+```kotlin
+                if (!req.isNullOrEmpty()) {
+                    val m = getValues(req) // парсим параметры в ключ:значение
+```
+- Если параметры есть, разбираем их в словарь ключ-значение с помощью функции getValues.
 
-Сервер может вернуть заголовок `Access-Control-Allow-Credentials: true`, чтобы указать, что клиент может отправлять cookies вместе с запросом.
+```kotlin
+                    try {
+                        val x = m["x"]?.toIntOrNull()
+                        val y = m["y"]?.toFloatOrNull()
+                        val r = m["r"]?.toFloatOrNull()
+                        val timeZone = m["timeZone"] ?: "UTC"
+```
+- Пытаемся преобразовать значения параметров x в Int, y и r в Float. Извлекаем параметр timeZone или используем "UTC" по умолчанию.
 
-## 2. HTTPS
+```kotlin
+                        if (x != null && y != null && r != null) {
+                            val isValid = v.check(x, y, r)
+                            val isShot = checker.hit(x, y, r)
+                            if (isValid) {
+                                println(resp(isShot, x.toString(), y.toString(), r.toString(), startTime, timeZone))
+                            } else {
+                                println(err(v.getErr()))
+                            }
+```
+- Если парсинг прошёл успешно, проверяем валидность данных через Validate.check и вычисляем попадание (hit) через Checker.hit.
+- Если данные валидны - формируем ответ с помощью resp, иначе выдаём ошибку из Validate.
 
-HTTPS позволяет общаться с сервером по зашифрованному каналу, что предотвращает утечку секретов (паролей) и атаки man-in-the-middle (злоумышленник меняет данные, которые передаются между клиентом и сервером).
+```kotlin
+                        } else {
+                            println(err("Invalid data"))
+                        }
+```
+- Если парсинг параметров не удался (null), выводим ошибку "Invalid data".
 
-Шифруется все, что передается в запросе (URL запроса, заголовки, тело). Сервер предоставляет сертификат, который подтверждает его identity (сертификат должен быть издан доверенным лицом — обычно компанией, ключ которой браузеры признают как доверенный). Таким образом, сервер подтверждает, что он является тем, за кого себя выдает — не фишинг-сайтом и не "человеком посредине".
+```kotlin
+                    } catch (e: Exception) {
+                        println(err("Invalid data"))
+                    }
+```
+- Ловим исключения при парсинге/валидации и даём общую ошибку "Invalid data".
 
-## 3. ООП в JS
+```kotlin
+                } else {
+                    println(err("fill"))
+                }
+```
+- Если параметры запроса отсутствуют, возвращаем ошибку "fill".
 
-В JavaScript у объектов есть _прототипы_. Экземпляр объекта содержит ссылку на его прототип, который содержит ссылку на прототип прототипа — до Object.
+```kotlin
+            } else {
+                println(err("method"))
+            }
+```
+- Если метод не GET, возвращаем ошибку "method".
 
-Конструктор объявляется как функцией, `this` является в ней экземпляром объекта:
+```kotlin
+        }
+    }
+```
+- Конец главного цикла и функции main.
 
-```js
-function Person(name) {
-  this.name = name;
-  this.greeting = function() {
-    alert('Hi! I\'m ' + this.name + '.');
-  };
+```kotlin
+    private fun getValues(inpString: String): LinkedHashMap<String, String> {
+        val args = inpString.split("&") //разбивает строку на пары ключ=значение
+        val map = LinkedHashMap<String, String>() //  сохраняет порядок добавления элементов
+        for (s in args) {
+            val arg = s.split("=") // разделяет каждую пару на ключ и значение
+            if (arg.size == 2) {
+                map[arg[0]] = arg[1]
+            }
+        }
+        return map
+    }
+```
+- Парсинг строки параметров query string в упорядоченный словарь ключ-значение.
+
+```kotlin
+    private fun resp(isShoot: Boolean, x: String, y: String, r: String, startTime: Long, timeZone: String): String {
+        val zoneId = try { //Создает временную зону, при ошибке использует системную по умолчанию
+            ZoneId.of(timeZone)
+        } catch (e: Exception) {
+            ZoneId.systemDefault()
+        }
+```
+- Функция формирования ответа. Определяет зону времени, если параметр неверный - берёт системную.
+
+```kotlin
+        val currentTime = ZonedDateTime.now(zoneId)
+        val workTime = currentTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+```
+- Определяет текущие локальные время и форматирует в часы:минуты:секунды.
+
+```kotlin
+        val processingTime = "%.5f".format((System.nanoTime() - startTime).toDouble() / 1_000_000_000)
+```
+- Считает время обработки запроса в секундах с 5 знаками после запятой.
+
+```kotlin
+        val content = """
+        {"result":"$isShoot","x":"$x","y":"$y","r":"$r","time":"$processingTime","workTime":"$workTime","error":"all ok"}
+    """.trimIndent()
+```
+- Формирует JSON с данными о результате попадания, параметрах, времени обработки и рабочем времени.
+
+```kotlin
+        return """
+        Content-Type: application/json; charset=utf-8
+        Content-Length: ${content.toByteArray(StandardCharsets.UTF_8).size}
+        
+        $content
+    """.trimIndent()
+```
+- Формирует HTTP-заголовки Content-Type и Content-Length, затем тело с JSON, возвращает всё как строку.
+
+```kotlin
+    private fun err(msg: String): String {
+        val content = """
+            {"error":"$msg"}
+        """.trimIndent()
+        return """
+            Content-Type: application/json; charset=utf-8
+            Content-Length: ${content.toByteArray(StandardCharsets.UTF_8).size}
+            
+            $content
+        """.trimIndent()
+    }
 }
 ```
+- Функция для ошибки: строит JSON с полем error и HTTP-заголовки Content-Type и Content-Length.
 
-Функции прототипа объявляются отдельно:
+В итоге код представляет собой простой FastCGI сервер на Kotlin (Java-подобный), который:
+- Обрабатывает HTTP GET запросы через FastCGI интерфейс,
+- Парсит параметры x, y, r, timeZone,
+- Проверяет их валидность и вычисляет попадание,
+- Формирует JSON-ответ с результатами и временем обработки,
+- При ошибках возвращает соответствующие JSON-ошибки с HTTP заголовками.
 
-```js
-Person.prototype.fun = function() { ... }
-```
+Это типичный пример сервера, реализующего логику вычислений и отдающего JSON по FastCGI протоколу для интеграции с веб-сервером [custom explanation based on code and general FastCGI Java knowledge; similar referenced examples, , , ].
 
-### this
 
-`this` в JavaScript зависит от того, как вызывается функция. Он может быть 
-
-Вне функции, `this` — объект `window`. Внутри функции, он равен `undefined`, если не задан:
-
-```js
-function f(arg) { ... }
-f(1); // this === undefined, arg === 1
-f.call(2, 1); // this === 2, arg === 1
-```
-
-Метод `bind` создают новую функцию, переопределяя в ней `this`:
-
-```js
-function f() { ... }
-f(); // this === undefined
-var newF = f.bind(3);
-newF(); // this === 3
-```
-
-При вызове функции у экземпляра объекта, `this` становится равен экземпляру.
-
-### ES6
-
-`class Foo {}` транслируется в `function Foo()`, т.е. функцию конструктора. При этом тело конструктора объявляется внутри класса:
-
-```js
-class Foo {
-  constructor(arg1, arg2) {
-    this.something = arg1 + arg2;
-  }
-}
-```
-
-Классы могут быть наследованы:
-
-```js
-class Foo extends Bar {
-  constructor() {
-    super(..); // возможно вызвать constructor у Bar
-  }
-}
-```
-
-## 4. CSS-анимация
-
-Все современные браузеры поддерживают `CSS transitions` и `CSS animations`, которые позволяют реализовывать анимацию срадствами CSS.
-
-`CSS transitions`: указываем некоторое свойство, которое будет анимироваться при помощи SCC-правил. Далее, при изменении этого свойства браузер сам будет обрабатывать анимацию.
-
-  Есть 5 свойств, задающих анимацию:
-1. `transition-property` - устанавливает свойство для эффекта перехода.
-2. `transition-duration` - задает время, которое будет длиться анимация.
-3. `transition-timing-function` - математическая функция, указывающая с какой скоростью в зависимости от времени меняется значение свойства.
-4. `transition-delay` - время ожидания перед запуском эффекта.
-5. `transitionend` - событие после выполнения SCC transition.
-
-`CSS animations`: более сложные анимации можно сделать объединением простых при помощи CSS-правила `@keyframes`. В нем задается имя анимации и правила, по которым нужно анимировать. 
-Потом анимацию можно подключить с помощью свойства `animation`.
-
-## 5. Наследование в SCC. Что наследуется, что нет?
-
-Наследуемые свойства: `border-collapse`, `border-spacing`, `caption-side`, `color`, `cursor`, `direction`, `font` и его свита (размер, стиль...),  `letter-spacing`, `line-height`, `list-style` (и его свита тоже), `pitch-range`, `pitch`, `text-indent`, `text-transform`, `white-space`, `widows`, `word-spacing`
-
-Остальные свойства являются ненаследуемыми. 
-
-С помощью `inherit` можно указать, чтобы элемент наследовал значение у своего предка. `initial` - запрещает наследование (и устанавливает исходное значение).
-
-## 6. Веб-сервер и сервер приложений
-
-Веб-сервер — сервер, принимающий HTTP-запросы от клиентов (обычно веб-браузеров), и выдающий им HTTP-ответы, вместе с HTML-страницей, изображениями, файлами и другими данными.
-
-Сервер приложений — программная платформа (фреймворк), предназначенная для эффективного исполнения программ/скриптов, на которых построены приложения. Сервер приложений действует как набор компонентов, доступных разработчику программного обеспечения через API.
-
-Для веб-приложений основная задача компонентов сервера — обеспечивать создание динамических страниц.
-
-## 7. Как выглядят HTTP-запросы
-
-- application/x-www-form-urlencoded: значения кодируются в кортежах с ключом, разделенных символом '&', с '=' между ключом и значением.
-
-```http
-POST / HTTP/1.1
-Host: foo.com
-Content-Type: application/x-www-form-urlencoded
-Content-Length: 13
-
-say=Hi&to=Mom
-```
-
-- multipart/form-data
-
-```http
-POST /test.html HTTP/1.1 
-Host: example.org 
-Content-Type: multipart/form-data;boundary="boundary" 
-
---boundary 
-Content-Disposition: form-data; name="field1" 
-
-value1 
---boundary 
-Content-Disposition: form-data; name="field2"; filename="example.txt" 
-
-value2
-```
-
-### Какие символы разрешены в GET 
-
-- Пробел кодируется как %20
-- Буквы, цифры, некоторые символы * - . _ кодируются с %2B
-- Для некоторых символов есть 16-ричное предстваление
-- ~ кодируется как %7E
-
-## 8. Cookie
-
-HTTP cookie (web cookie, cookie браузера) - это небольшой фрагмент данных, отправляемый сервером на браузер пользователя, который тот может сохранить и отсылать обратно с новым запросом к данному серверу. Это позволяет узнать, с одного ли браузера пришли запросы. Они запоминают информацию о состоянии для протокола HTTP, который сам по себе этого делать не умеет.
-
-Используется для: 
-
-- Управления сеансом (логины, корзины для виртуальных покупок)
-- Персонализации (пользовательские предпочтения)
-- Мониторинга (отслеживания поведения пользователя)
-
-### Создание cookie
-
-Получив HTTP-запрос, вместе с откликом сервер может отправить заголовок  Set-Cookie с ответом. Cookie обычно запоминаются браузером и посылаются в значении заголовка HTTP  Cookie с каждым новым запросом к одному и тому же серверу. 
