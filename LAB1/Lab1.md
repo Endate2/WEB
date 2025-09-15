@@ -300,22 +300,47 @@ $.ajax({
 
 ## 11. Реализация AJAX с помощью SuperAgent.
 
-SuperAgent - API для реализации AJAX:
+AJAX с помощью SuperAgent реализуется через удобное и гибкое API для асинхронных HTTP-запросов. SuperAgent поддерживает как GET, так и POST запросы, работает в браузерах и с Node.js, использует промисы и async/await для удобной обработки ответов. Ниже пример реализации AJAX запросов с SuperAgent.
 
-```js
-request
-  .post('/api/pet')
-  .send({ name: 'Manny', species: 'cat' })
-  .set('X-API-Key', 'foobar')
-  .set('Accept', 'application/json')
-  .end(function(err, res){
-  if (err || !res.ok) {
-    alert('Oh no! Error');
-  } else {
-    alert('yay got ' + JSON.stringify(res.body));
-  }
-});
+### Пример реализации GET-запроса с SuperAgent:
+```javascript
+const superagent = require('superagent');
+
+superagent.get('https://example.com/api/data')
+  .query({ param1: 'value1', param2: 'value2' })  // параметры запроса
+  .then(response => {
+    console.log(response.body);  // данные ответа
+  })
+  .catch(error => {
+    console.error(error);
+  });
 ```
+
+### Пример реализации POST-запроса с SuperAgent:
+```javascript
+superagent.post('https://example.com/api/send')
+  .send({ name: 'Ivan', age: 30 })  // данные отправляемые на сервер
+  .set('Accept', 'application/json')  // заголовки, например, ожидаемый формат ответа
+  .then(response => {
+    console.log(response.body);
+  })
+  .catch(error => {
+    console.error(error);
+  });
+```
+
+### Ключевые особенности SuperAgent для AJAX:
+- Поддержка промисов и async/await для удобной работы с асинхронностью.
+- Можно отменять запросы методом `.abort()`.
+- Легкий и универсальный, работает как в браузере, так и в Node.js.
+- Позволяет легко создавать запросы с параметрами, заголовками, телом.
+- Помогает работать с CORS и form-data.
+- Позволяет делать повторные попытки запросов при ошибках.
+- API похож на нативный XMLHttpRequest, но более удобный и читаемый [1][3][5].
+
+Таким образом, SuperAgent — мощный и простой инструмент для реализации AJAX-запросов в современных веб-приложениях.
+
+
 
 ## 12. Серверные сценарии. CGI - определение, назначение, ключевые особенности.
 
